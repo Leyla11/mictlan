@@ -310,7 +310,7 @@ class Mictlan {
     ctx.fillText('Make that your friend Xolo help you with your journey to the underworld,', 320, 200)
     ctx.fillText('take the cempasuchtl flowers and the corn.', 320, 230)
     ctx.fillText('Do not take the pumpkin items, they will take life off your Xolo friend.', 320, 260)
-    ctx.fillText('Use the key A and B for move the Xolo 1', 320, 290)
+    ctx.fillText('Use the key A and D for move the Xolo 1', 320, 290)
     ctx.fillText('Use the key ◀︎ and ▶︎ for move the Xolo 2', 320, 320)
   }
 
