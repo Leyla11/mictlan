@@ -7,6 +7,9 @@ body {
   overflow: hidden;
   background-color: black;
 }
+audio {
+  display: ;
+}
 
 canvas {
   height: 100%;

@@ -2,7 +2,6 @@ class Player {
   //logica de los jugadores
   constructor(x) {
     this.health = 3
-    this.score = 0
     this.x = x
   }
 
@@ -28,7 +27,7 @@ class Player {
 }
 
 class Sprite {
-  //la laogica de las imagenes que esta dentro de este
+  //la logica de las imagenes que esta dentro de este
   constructor({ path, width, height }) {
     this.loaded = false
     this.width = width
@@ -109,10 +108,15 @@ const sprites = {
     path: './images/xolo-player.png',
     width: 201,
     height: 456
+  }),
+  xolo2: new Sprite({
+    path: './images/xolo-player2.png',
+    width: 201,
+    height: 456
   })
 }
 
-// Estos son metodos de la clase Mictlan
+//estos son metodos de la clase Mictlan
 const screens = {
   logo: ['renderBackground', 'renderLogo', 'renderEnter'],
   instructions: ['renderBackground', 'renderInstructions'],
@@ -124,31 +128,32 @@ const items = [
   {
     name: 'Bonus',
     sprite: sprites.bonus,
-    score: 1,
+    health: 1,
     probability: 2
   },
   {
     name: 'Flor',
     sprite: sprites.flor,
-    score: 0,
+    health: 0,
     probability: 10
   },
   {
     name: 'Maiz',
     sprite: sprites.maiz,
-    score: 0,
+    health: 0,
     probability: 18
   },
   {
     name: 'Pumpkin',
     sprite: sprites.pumpkin,
-    score: -1,
+    health: -1,
     probability: 20
   }
 ]
 
 class Gameplay {
   constructor() {
+    this.timeouts = {}
     this.reset()
   }
 
@@ -161,7 +166,7 @@ class Gameplay {
       newItemTimeout: 1000,
       updateItemsTimeout: 250,
       numCalabazas: 3,
-      maxItemY: 10
+      maxItemY: 11
     }
   }
 
@@ -172,10 +177,8 @@ class Gameplay {
   }
 
   stop() {
-    if (typeof this.timeouts === 'object') {
-      for (const timeout in this.timeouts) {
-        clearTimeout(timeout)
-      }
+    for (const timeout in this.timeouts) {
+      clearTimeout(this.timeouts[timeout])
     }
     this.timeouts = {}
   }
@@ -193,7 +196,7 @@ class Gameplay {
     let i
     for (i = 0; i < items.length; i += 1) {
       const { probability } = items[i]
-      if (probability < number) {
+      if (number < probability) {
         break
       }
       number -= probability
@@ -201,41 +204,52 @@ class Gameplay {
     if (i === items.length) {
       i -= 1
     }
-    const { name, sprite, score } = items[i]
+    const { name, sprite, health } = items[i]
     const { x = Math.floor(Math.random() * 10) } = settings
     const { y = 0 } = settings
-    return { name, sprite, score, x, y }
+    return { name, sprite, health, x, y }
   }
 
   newItem() {
     const newItem = this.generateItem()
+
+    //revisa si existe un item en la misma posicion
+    const existingItems = this.items.filter(({ x, y }) => x === newItem.x && y === newItem.y)
+    if (existingItems.length > 0) {
+      return
+    }
+
+    //agrega el nuevo item
     this.items.push(newItem)
+
+    //actualiza el timeout
     const { newItemTimeout } = this.settings
     this.timeouts['newItem'] = setTimeout(() => this.newItem(), newItemTimeout)
   }
 
   updateItems() {
     const { maxItemY } = this.settings
-    const itemsToScore = []
+    const itemsToAssign = []
     this.items.forEach(item => {
       item.y += 1
+      console.log(`${item.name}: ${item.x}, ${item.y}`)
       if (item.y === maxItemY) {
-        itemsToScore.push(item)
+        itemsToAssign.push(item)
       }
     })
-    if (itemsToScore.length > 0) {
+    if (itemsToAssign.length > 0) {
       const [p1, p2] = this.players
-      itemsToScore.reverse()
-      itemsToScore.forEach(item => {
+      itemsToAssign.reverse()
+      itemsToAssign.forEach(item => {
         if (item.x === p1.x) {
-          p1.score += item.score
+          p1.health += item.health
         } else if (item.x === p2.x) {
-          p2.score += item.score
-        } else {
+          p2.health += item.health
+        } else if (item.name !== 'Pumpkin') {
           this.calabacear(item.x)
         }
       })
-      this.items = this.items.filter(({ y }) => y >= maxItemY)
+      this.items = this.items.filter(({ y }) => y < maxItemY)
     }
     const { updateItemsTimeout } = this.settings
     this.timeouts['updateItems'] = setTimeout(() => this.updateItems(), updateItemsTimeout)
@@ -286,32 +300,44 @@ class Mictlan {
     enter.render(this.ctx, { x: 110, y: 260 })
   }
 
-  // TODO: Renderizar las instrucciones
-  renderInstructions() {}
+  renderInstructions() {
+    const { ctx } = this
+    ctx.font = '40px Verdana'
+    ctx.fillStyle = 'white'
+    ctx.textAlign = 'center'
+    ctx.fillText('Instructions', 320, 160)
+    ctx.font = '16px Verdana'
+    ctx.fillText('Make that your friend Xolo help you with your journey to the underworld,', 320, 200)
+    ctx.fillText('take the cempasuchtl flowers and the corn.', 320, 230)
+    ctx.fillText('Do not take the pumpkin items, they will take life off your Xolo friend.', 320, 260)
+    ctx.fillText('Use the key A and B for move the Xolo 1', 320, 290)
+    ctx.fillText('Use the key ◀︎ and ▶︎ for move the Xolo 2', 320, 320)
+  }
 
   renderWin() {
     const { winBackground } = sprites
     winBackground.render(this.ctx, { x: 0, y: 0, width: 640, height: 480 })
     const [p1, p2] = this.gameplay.players
-    if (p1.score > 0) {
+    if (p1.health > 0) {
       const { p1win } = sprites
       p1win.render(this.ctx, { x: 110, y: 50 })
-    } else if (p2.score > 0) {
+    } else if (p2.health > 0) {
       const { p2win } = sprites
       p2win.render(this.ctx, { x: 110, y: 50 })
     }
   }
 
-  // TODO: Renderizar la jugabilidad
   renderGameplay() {
     //renderizando los jugadores
     const { players } = this.gameplay
-    players.forEach(player => {
+    players.forEach((player, playerIndex) => {
       const x = player.x * 64
-      const { xolo } = sprites
-      xolo.render(this.ctx, { x, y: 335, width: 64, height: 145 })
+      const { xolo, xolo2 } = sprites
+      const sprite = playerIndex === 0 ? xolo : xolo2
+      sprite.render(this.ctx, { x, y: 335, width: 64, height: 145 })
     })
 
+    //renderizando los items
     const { items } = this.gameplay
     items.forEach(item => {
       const x = item.x * 64
@@ -319,7 +345,27 @@ class Mictlan {
       const { sprite } = item
       sprite.render(this.ctx, { x, y, width: 64, height: 64 })
     })
-    // TODO: Renderizar las vidas
+
+    //cambiando la screen si ya ha ganado un jugador
+    const [p1, p2] = players
+    if (p1.health <= 0 || p2.health <= 0) {
+      this.gameplay.stop()
+      this.screen = 'win'
+      setTimeout(() => (this.screen = 'logo'), 3000)
+    }
+
+    //renderizando las vidas
+    const { bonus } = sprites
+    for (let i = 0; i < p1.health; i += 1) {
+      const x = 16 + i * 40
+      const y = 432
+      bonus.render(this.ctx, { x, y, width: 32, height: 32 })
+    }
+    for (let i = 0; i < p2.health; i += 1) {
+      const x = 592 - i * 40
+      const y = 432
+      bonus.render(this.ctx, { x, y, width: 32, height: 32 })
+    }
   }
 
   render() {
@@ -339,8 +385,12 @@ class Mictlan {
 
       case 'logo':
         if (keyCode === 13) {
-          this.screen = 'gameplay'
-          this.gameplay.start()
+          this.screen = 'instructions'
+          setTimeout(() => {
+            this.screen = 'gameplay'
+            this.gameplay.reset()
+            this.gameplay.start()
+          }, 3000)
         }
     }
   }
