@@ -164,8 +164,8 @@ class Gameplay {
     this.players = [new Player(0), new Player(9)]
     this.settings = {
       newItemTimeout: 1000,
-      updateItemsTimeout: 250,
-      numCalabazas: 3,
+      updateItemsTimeout: 150,
+      numCalabazas: 2,
       maxItemY: 11
     }
   }
